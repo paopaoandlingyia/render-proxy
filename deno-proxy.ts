@@ -25,9 +25,7 @@ const state = {
   logs: [] as RequestLog[], // 日志存储
 };
 
-// 统一使用一个常量
-const KV_EXPIRATION_MS = 12 * 60 * 60 * 1000; // 12小时
-const expireAt = new Date(Date.now() + KV_EXPIRATION_MS);
+// 已移除 KV 相关逻辑（仅内存状态）
 
 // 添加分段日志函数
 function logFullContent(prefix: string, content: string) {
@@ -273,6 +271,10 @@ function getHtmlIndex(): string {
       overflow-x: auto;
       max-height: 300px;
       overflow-y: auto;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .timestamp {
       color: #666;
@@ -471,17 +473,27 @@ function getHtmlIndex(): string {
       });
     }
     
-    // 格式化请求体
+    // 转义以安全展示为纯文本
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // 格式化并转义内容（仅展示，不做长度限制）
     function formatBody(body) {
       if (!body) return '无内容';
       
       try {
         // 尝试解析为JSON并格式化
         const parsed = JSON.parse(body);
-        return JSON.stringify(parsed, null, 2);
+        return escapeHtml(JSON.stringify(parsed, null, 2));
       } catch (e) {
-        // 如果不是JSON，直接返回
-        return body;
+        // 如果不是JSON，原样转义后返回
+        return escapeHtml(body);
       }
     }
     
@@ -1020,7 +1032,7 @@ async function handleRequest(request: Request): Promise<Response> {
   return handleProxy(request);
 }
 
-// 初始化状态并启动服务器（已移除 KV 状态恢复）
+// 初始化状态并启动服务器
 // 服务器启动
 if (state.isDebugMode) {
   console.log(`启动反代服务器，目标: ${TARGET_URL}`);
